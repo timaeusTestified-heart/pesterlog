@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 // статические файлы (HTML, CSS, JS)
 app.use(express.static("public"));
 
-// хранение пользователей и их настроения
+// пользователи хранятся как { socketId: { name, color, mood } }
 let users = {};
 
 io.on("connection", (socket) => {
@@ -21,6 +21,7 @@ io.on("connection", (socket) => {
       color: data.color,
       mood: data.mood
     };
+    // отправляем всем актуальный список пользователей
     io.emit("user list", Object.values(users));
   });
 
@@ -31,11 +32,12 @@ io.on("connection", (socket) => {
 
   // приватные сообщения
   socket.on("private message", (data) => {
-    // ищем id получателя по имени
+    // ищем сокет id получателя по имени
     const toSocketId = Object.keys(users).find(id => users[id].name === data.to);
-    if(toSocketId) {
-      socket.emit("private message", data); // отправляем себе
-      io.to(toSocketId).emit("private message", data); // отправляем получателю
+    if(toSocketId){
+      // отправляем приватно получателю и себе
+      socket.emit("private message", data);
+      io.to(toSocketId).emit("private message", data);
     }
   });
 
@@ -43,6 +45,16 @@ io.on("connection", (socket) => {
   socket.on("update mood", (data) => {
     if(users[socket.id]){
       users[socket.id].mood = data.mood;
+      // пересылаем всем обновленный список пользователей, чтобы у всех было видно настроение
+      io.emit("user list", Object.values(users));
+    }
+  });
+
+  // смена ника/цвета
+  socket.on("update profile", (data) => {
+    if(users[socket.id]){
+      users[socket.id].name = data.name || users[socket.id].name;
+      users[socket.id].color = data.color || users[socket.id].color;
       io.emit("user list", Object.values(users));
     }
   });
