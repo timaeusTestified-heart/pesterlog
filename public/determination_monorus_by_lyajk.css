@@ -1,0 +1,9 @@
+@font-face {
+	font-family: 'Determination Mono(RUS BY LYAJK';
+	src: url('../fonts/determination_monorus_by_lyajk.eot'); /* IE 9 Compatibility Mode */
+	src: url('../fonts/determination_monorus_by_lyajk.eot?#iefix') format('embedded-opentype'), /* IE < 9 */
+		url('../fonts/determination_monorus_by_lyajk.woff2') format('woff2'), /* Super Modern Browsers */
+		url('../fonts/determination_monorus_by_lyajk.woff') format('woff'), /* Firefox >= 3.6, any other modern browser */
+		url('../fonts/determination_monorus_by_lyajk.ttf') format('truetype'), /* Safari, Android, iOS */
+		url('../fonts/determination_monorus_by_lyajk.svg#determination_monorus_by_lyajk') format('svg'); /* Chrome < 4, Legacy iOS */
+}
