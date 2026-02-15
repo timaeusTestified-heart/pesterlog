@@ -491,7 +491,7 @@ button:hover {background: #fffacd;}
 .mood-buttons button {margin-right:5px;}
 </style>
 </head>
-<body>
+<body style="visibility:hidden;">
 
 <!-- sidebar с корешами -->
 <div id="sidebar">
@@ -640,6 +640,7 @@ function openPrivateChat(to,toColor){
     div.innerHTML=`<span style="color:${data.color}">${data.from}:</span> ${data.message}`;
     messagesDiv.appendChild(div);
     messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    document.body.style.visibility = "visible";
   });
 }
 </script>
