@@ -324,6 +324,26 @@ socket.on("chat message", function(msg) {
   chat.appendChild(div);
 });
 </script>
+const adjectives = ["виниловый","пурпурный","космический","электрический","лунный","серебряный","пылающий","туманный","шумный","голографический","кибернетический","древний"];
+const nouns = ["Демируг","Хранитель","Король","Скиталец","Трикстер","Маг","Архитектор","Тень","Призрак","Созидатель","Манипулятор","Провидец"];
+function randomNick() {
+  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+  const noun = nouns[Math.floor(Math.random() * nouns.length)];
+  return adj + noun;
+}
+window.onload = () => {
+  let savedNick = localStorage.getItem("pesterNick");
+  if(savedNick) {
+    document.getElementById("name").value = savedNick;
+  } else {
+    let newNick = randomNick();
+    document.getElementById("name").value = newNick;
+    localStorage.setItem("pesterNick", newNick);
+  }
+  nickname = document.getElementById("name").value;
+  color = document.getElementById("color").value;
+  socket.emit("join", {name: nickname, color: color});
+};
 
 </body>
 </html>
