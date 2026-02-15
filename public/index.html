@@ -2,111 +2,113 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>pester mini</title>
+<title>pester mini light</title>
 <style>
-/* --- общий стиль --- */
 body {
   margin:0;
   font-family: monospace;
   display:flex;
-  background: #0b0b0b;
-  color: #fff;
+  background:#fff; /* белый фон */
+  color:#000;
 }
 
-/* --- sidebar: кореши --- */
+/* sidebar с корешами */
 #sidebar {
-  width: 180px;
-  background: #111;
-  border-right: 3px solid #0f0;
-  padding: 10px;
+  width:180px;
+  background:#fff;
+  border-right:3px solid #FFD700; /* жёлтая рамка */
+  padding:10px;
 }
 #sidebar h4 {
   margin-top:0;
-  color: #0f0;
+  color:#FFD700;
 }
 .user {
   cursor:pointer;
   margin-bottom:5px;
   padding:4px;
   border-radius:4px;
+  border:1px solid #FFD700;
   transition: background 0.2s;
 }
-.user:hover {background: rgba(0,255,0,0.2);}
+.user:hover {background: #fffacd;}
 .status {font-size:10px;color:gray;}
 
-/* --- контейнер чата --- */
+/* основной чат */
 #chat-container {
   flex:1;
   padding:10px;
   display:flex;
   flex-direction: column;
 }
-
-/* --- общий чат --- */
 #chat {
   flex:1;
   height:200px;
   overflow-y:auto;
-  border:2px solid #0f0;
+  border:2px solid #FFD700;
   padding:10px;
-  background: #000;
+  background:#fff;
   margin-bottom:10px;
   border-radius:6px;
 }
 
-/* --- приватные чаты --- */
+/* приватные чаты */
 .private-chat {
-  border:2px solid cyan;
+  border:2px solid #FFD700;
   padding:5px;
   margin-top:10px;
   height:150px;
   overflow-y:auto;
   border-radius:6px;
-  background:#111;
+  background:#fff;
 }
 .private-chat .messages {
   max-height:120px;
   overflow-y:auto;
 }
 
-/* --- input/button --- */
+/* input и кнопки */
 input, button {
-  background:#000;
-  color:#0f0;
-  border:1px solid #0f0;
+  background:#fff;
+  color:#000;
+  border:1px solid #FFD700;
   font-family: monospace;
   margin:2px 0;
   padding:4px;
   border-radius:4px;
 }
-button {cursor:pointer;}
-button:hover {background: rgba(0,255,0,0.2);}
+button:hover {background: #fffacd;}
+.mood-buttons button {margin-right:5px;}
 </style>
 </head>
 <body>
 
-<!-- sidebar: кореши -->
+<!-- sidebar с корешами -->
 <div id="sidebar">
   <h4>chums</h4>
   <div id="users"></div>
 </div>
 
-<!-- основной чат + приватные -->
+<!-- основной чат -->
 <div id="chat-container">
   <h3>общий чат</h3>
   <div id="chat"></div>
 
-  <!-- ввод никнейма, цвета и сообщения -->
   <input id="name" placeholder="nickname">
-  <input id="color" type="color" value="#00ff00">
   <input id="message" placeholder="message">
   <button onclick="send()">send</button>
+
+  <!-- кнопки настроения -->
+  <div class="mood-buttons">
+    <button onclick="sendMood('😃')">😃</button>
+    <button onclick="sendMood('😡')">😡</button>
+    <button onclick="sendMood('😴')">😴</button>
+  </div>
 
   <!-- приватные чаты -->
   <div id="private-chats"></div>
 </div>
 
-<!-- звук при новом сообщении -->
 <audio id="ping">
   <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
 </audio>
@@ -122,48 +124,63 @@ const privateChatsDiv = document.getElementById("private-chats");
 let nickname = "";
 let color = "";
 
-/* --- генератор ников --- */
-const adjectives = ["виниловый","пурпурный","космический","электрический","лунный","серебряный","пылающий","туманный","шумный","голографический","кибернетический","древний","жуткий","сумрачный"];
-const nouns = ["Демируг","Хранитель","Король","Скиталец","Трикстер","Маг","Архитектор","Тень","Призрак","Созидатель","Манипулятор","Провидец","Шаман","Зловещий","Мастиф"];
+/* генератор ника */
+const adjectives = ["виниловый","пурпурный","космический","электрический","лунный","серебряный","пылающий","туманный","шумный","голографический","кибернетический","древний"];
+const nouns = ["Демируг","Хранитель","Король","Скиталец","Трикстер","Маг","Архитектор","Тень","Призрак","Созидатель","Манипулятор","Провидец"];
 
 function randomNick() {
   const adj = adjectives[Math.floor(Math.random()*adjectives.length)];
   const noun = nouns[Math.floor(Math.random()*nouns.length)];
-  return adj + noun;
+  return adj+noun;
 }
 
-/* --- сохранение ника --- */
-window.onload = () => {
+/* рандомный цвет для ника */
+function randomColor() {
+  const letters = '0123456789ABCDEF';
+  let col = '#';
+  for(let i=0;i<6;i++){ col+=letters[Math.floor(Math.random()*16)]; }
+  return col;
+}
+
+/* проверка сохраненного ника и цвета */
+window.onload = ()=>{
   let savedNick = localStorage.getItem("pesterNick");
-  if(savedNick) {
-    document.getElementById("name").value = savedNick;
+  let savedColor = localStorage.getItem("pesterColor");
+  if(savedNick && savedColor){
+    nickname = savedNick;
+    color = savedColor;
   } else {
-    let newNick = randomNick();
-    document.getElementById("name").value = newNick;
-    localStorage.setItem("pesterNick", newNick);
+    nickname = randomNick();
+    color = randomColor();
+    localStorage.setItem("pesterNick",nickname);
+    localStorage.setItem("pesterColor",color);
   }
-  nickname = document.getElementById("name").value;
-  color = document.getElementById("color").value;
-  socket.emit("join", {name: nickname, color: color});
+  document.getElementById("name").value = nickname;
+  socket.emit("join",{name:nickname,color:color});
 };
 
-/* --- ввод никнейма вручную --- */
-document.getElementById("name").addEventListener("change", () => {
+/* запрещаем менять цвет */
+document.getElementById("name").addEventListener("change", ()=>{
   nickname = document.getElementById("name").value;
-  color = document.getElementById("color").value;
-  localStorage.setItem("pesterNick", nickname);
-  socket.emit("join", {name: nickname, color: color});
+  localStorage.setItem("pesterNick",nickname);
+  socket.emit("join",{name:nickname,color:color});
 });
 
-/* --- общий чат --- */
-function send() {
+/* отправка обычного сообщения */
+function send(){
   const message = document.getElementById("message").value;
-  if(!nickname) return alert("enter nickname first");
-  socket.emit("chat message", {name:nickname,color:color,message:message});
+  if(!nickname || !message) return;
+  socket.emit("chat message",{name:nickname,color:color,message:message});
   document.getElementById("message").value="";
 }
 
-socket.on("chat message", (data)=>{
+/* кнопки настроения */
+function sendMood(emoji){
+  socket.emit("chat message",{name:nickname,color:color,message:emoji});
+}
+
+/* обработка сообщений */
+socket.on("chat message",(data)=>{
   const div=document.createElement("div");
   div.innerHTML=`<span style="color:${data.color}">${data.name}:</span> ${data.message}`;
   chat.appendChild(div);
@@ -171,8 +188,8 @@ socket.on("chat message", (data)=>{
   chat.scrollTop = chat.scrollHeight;
 });
 
-/* --- список корешей --- */
-socket.on("user list", (users)=>{
+/* список корешей */
+socket.on("user list",(users)=>{
   usersDiv.innerHTML="";
   users.forEach(user=>{
     if(user.name===nickname) return;
@@ -184,8 +201,8 @@ socket.on("user list", (users)=>{
   });
 });
 
-/* --- приватные чаты --- */
-let openChats={}; // toName -> div
+/* приватные чаты */
+let openChats={};
 
 function openPrivateChat(to,toColor){
   if(openChats[to]) return;
@@ -216,134 +233,5 @@ function openPrivateChat(to,toColor){
   });
 }
 </script>
-
-</body>
-</html></audio>
-
-<script src="/socket.io/socket.io.js"></script>
-<script>
-const socket = io();
-const chat = document.getElementById("chat");
-const usersDiv = document.getElementById("users");
-const ping = document.getElementById("ping");
-const privateChatsDiv = document.getElementById("private-chats");
-
-let nickname = "";
-let color = "";
-
-// вводим ник
-document.getElementById("name").addEventListener("change", () => {
-  nickname = document.getElementById("name").value;
-  color = document.getElementById("color").value;
-  socket.emit("join", {name: nickname, color: color});
-});
-
-// общий чат
-function send() {
-  const message = document.getElementById("message").value;
-  if(!nickname) return alert("enter nickname first");
-  socket.emit("chat message", {name: nickname, color: color, message: message});
-  document.getElementById("message").value = "";
-}
-
-socket.on("chat message", function(data) {
-  const div = document.createElement("div");
-  div.innerHTML = `<span style="color:${data.color}">${data.name}:</span> ${data.message}`;
-  chat.appendChild(div);
-  ping.play();
-  chat.scrollTop = chat.scrollHeight;
-});
-
-// список пользователей (корешей)
-socket.on("user list", function(users) {
-  usersDiv.innerHTML = "";
-  users.forEach(user => {
-    if(user.name === nickname) return; // не показываем себя
-    const div = document.createElement("div");
-    div.className = "user";
-    div.innerHTML = `<span style="color:${user.color}">${user.name}</span><div class="status">online</div>`;
-    div.onclick = () => openPrivateChat(user.name, user.color);
-    usersDiv.appendChild(div);
-  });
-});
-
-// приватные чаты
-let openChats = {}; // toName -> div
-function openPrivateChat(to, toColor) {
-  if(openChats[to]) return; // уже открыт
-  const chatDiv = document.createElement("div");
-  chatDiv.className = "private-chat";
-  chatDiv.innerHTML = `<strong style="color:${toColor}">${to}</strong><div class="messages"></div>
-  <input placeholder="message"><button>send</button>`;
-  privateChatsDiv.appendChild(chatDiv);
-  openChats[to] = chatDiv;
-
-  const input = chatDiv.querySelector("input");
-  const button = chatDiv.querySelector("button");
-  const messagesDiv = chatDiv.querySelector(".messages");
-
-  button.onclick = () => {
-    const msg = input.value;
-    if(!msg) return;
-    socket.emit("private message", {from: nickname, to, message: msg, color});
-    input.value = "";
-  };
-
-  socket.on("private message", (data) => {
-    if(data.from !== nickname && data.from !== to) return; // чужие сообщения
-    const div = document.createElement("div");
-    div.innerHTML = `<span style="color:${data.color}">${data.from}:</span> ${data.message}`;
-    messagesDiv.appendChild(div);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-  });
-}
-</script>
-
-</body>
-</html><div id="chat"></div>
-
-<input id="name" placeholder="nickname">
-<input id="message" placeholder="message">
-<button onclick="send()">send</button>
-
-<script src="/socket.io/socket.io.js"></script>
-<script>
-const socket = io();
-const chat = document.getElementById("chat");
-
-function send() {
-  const name = document.getElementById("name").value;
-  const message = document.getElementById("message").value;
-  socket.emit("chat message", name + ": " + message);
-  document.getElementById("message").value = "";
-}
-
-socket.on("chat message", function(msg) {
-  const div = document.createElement("div");
-  div.textContent = msg;
-  chat.appendChild(div);
-});
-</script>
-const adjectives = ["виниловый","пурпурный","космический","электрический","лунный","серебряный","пылающий","туманный","шумный","голографический","кибернетический","древний"];
-const nouns = ["Демируг","Хранитель","Король","Скиталец","Трикстер","Маг","Архитектор","Тень","Призрак","Созидатель","Манипулятор","Провидец"];
-function randomNick() {
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  return adj + noun;
-}
-window.onload = () => {
-  let savedNick = localStorage.getItem("pesterNick");
-  if(savedNick) {
-    document.getElementById("name").value = savedNick;
-  } else {
-    let newNick = randomNick();
-    document.getElementById("name").value = newNick;
-    localStorage.setItem("pesterNick", newNick);
-  }
-  nickname = document.getElementById("name").value;
-  color = document.getElementById("color").value;
-  socket.emit("join", {name: nickname, color: color});
-};
-
 </body>
 </html>
