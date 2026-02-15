@@ -17,6 +17,8 @@ body.loaded { visibility: visible; }
 #chat-container { flex:1; display:flex; flex-direction:column; padding:10px; overflow:hidden; }
 #chat { flex:1; border:2px solid #FFD700; padding:10px; border-radius:6px; margin-bottom:10px; background:#fff; overflow-y:auto; box-shadow: inset 0 0 5px rgba(0,0,0,0.05); }
 
+#message { width:100%; height:50px; margin-top:5px; }
+
 .private-chat { border:2px solid #FFD700; padding:5px; margin-top:10px; height:180px; overflow-y:auto; border-radius:6px; background:#fff; box-shadow:0 2px 5px rgba(0,0,0,0.1); animation:fadeIn 0.3s ease;}
 .private-chat .messages { max-height:120px; overflow-y:auto; margin-bottom:5px; }
 
@@ -102,6 +104,13 @@ nickColors.forEach(c=>{
   colorSelect.appendChild(opt);
 });
 
+// функция для аббревиатуры ника
+function getAbbr(name){
+  if(nickAbbr[name]) return nickAbbr[name];
+  // если нет в словаре, берём первые буквы каждого слова
+  return name.match(/\b\p{L}/gu)?.join('') || name.slice(0,2);
+}
+
 window.onload = ()=>{
   let savedNick = localStorage.getItem("pesterNick");
   let savedColor = localStorage.getItem("pesterColor");
@@ -176,8 +185,8 @@ function openPrivateChat(to,toColor){
   const input = chatDiv.querySelector("input");
   const button = chatDiv.querySelector(".send-btn");
 
-  const abbrFrom = nickAbbr[nickname] || nickname.slice(0,2).toUpperCase();
-  const abbrTo = nickAbbr[to] || to.slice(0,2).toUpperCase();
+  const abbrFrom = getAbbr(nickname);
+  const abbrTo = getAbbr(to);
   const sysMsg = document.createElement("div");
   sysMsg.style.fontStyle = "italic";
   sysMsg.innerText = `[${abbrFrom}] начал доставать [${abbrTo}]`;
