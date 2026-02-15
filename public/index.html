@@ -6,35 +6,186 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-/* скрываем до полной загрузки */
-body {
-  visibility: hidden;
-  background: #fff;
-  margin: 0;
-  display: flex;
-  font-family: "Courier Prime", monospace;
+/* подключаем кастомный шрифт */
+@font-face {
+  font-family: "Determination Mono Rus";
+  src: url("/fonts/determination-mono-rus.woff2") format("woff2"),
+       url("/fonts/determination-mono-rus.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
 }
 
-body.loaded {
-  visibility: visible;
+body {
+  visibility: hidden;
+  background:#fff;
+  margin:0;
+  display:flex;
+  font-family: "Determination Mono Rus", monospace;
 }
+
+body.loaded { visibility: visible; }
 
 /* sidebar */
 #sidebar {
-  width: 220px;
-  background: #fff;
-  border-right: 3px solid #FFD700;
-  padding: 10px;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-  overflow-y: auto;
+  width:220px;
+  background:#fff;
+  border-right:3px solid #FFD700;
+  padding:10px;
+  box-shadow:2px 0 5px rgba(0,0,0,0.1);
+  overflow-y:auto;
 }
-#sidebar h4 {
-  color: #FFD700;
-  margin: 0 0 10px;
-}
+#sidebar h4 { color:#FFD700; margin:0 0 10px; }
 #my-nick, .user {
-  padding: 6px;
-  border: 1px solid #FFD700;
+  padding:6px;
+  border:1px solid #FFD700;
+  border-radius:4px;
+  margin-bottom:6px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.user:hover { background:#fffacd; cursor:pointer; }
+.status { font-size:14px; }
+
+/* приватные чаты */
+.private-chat {
+  border:2px solid #FFD700;
+  background:#fff;
+  border-radius:6px;
+  padding:6px;
+  margin-top:10px;
+  overflow:auto;
+}
+.private-chat .messages {
+  max-height:130px;
+  overflow:auto;
+  margin-bottom:6px;
+}
+
+/* input и кнопки */
+input, button {
+  background:#fff;
+  color:#000;
+  border:1px solid #FFD700;
+  padding:4px;
+  border-radius:4px;
+  margin:2px 0;
+}
+button:hover { background:#fffacd; }
+.mood-buttons button { margin-right:5px; }
+
+</style>
+</head>
+
+<body>
+
+<div id="sidebar">
+  <h4>chums</h4>
+  <div id="my-nick"></div>
+  <div id="users"></div>
+</div>
+
+<div id="chat-container">
+  <div id="private-chats"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+const usersDiv = document.getElementById("users");
+const myNickDiv = document.getElementById("my-nick");
+const privateChatsDiv = document.getElementById("private-chats");
+
+let nickname = "", color = "", mood = "";
+
+const nickColors = ["#FF4500","#1E90FF","#32CD32","#FFD700","#FF69B4","#8A2BE2","#00CED1","#FF6347","#FF1493","#00FA9A"];
+const adjectives = ["виниловый","пурпурный","космический","электрический","лунный","серебряный","пылающий","туманный","шумный","голографический","кибернетический","древний"];
+const nouns = ["Демируг","Хранитель","Король","Скиталец","Трикстер","Маг","Архитектор","Тень","Призрак","Созидатель","Манипулятор","Провидец"];
+
+function randomNick(){
+  return adjectives[Math.floor(Math.random()*adjectives.length)]
+       + nouns[Math.floor(Math.random()*nouns.length)];
+}
+function randomColor(){
+  return nickColors[Math.floor(Math.random()*nickColors.length)];
+}
+
+window.onload = () => {
+  let sn = localStorage.getItem("pesterNick");
+  let sc = localStorage.getItem("pesterColor");
+  let sm = localStorage.getItem("pesterMood");
+
+  if(sn && sc){ nickname = sn; color = sc; } 
+  else { nickname = randomNick(); color = randomColor(); localStorage.setItem("pesterNick",nickname); localStorage.setItem("pesterColor",color); }
+
+  if(sm){ mood = sm; } else { mood = "😃"; localStorage.setItem("pesterMood",mood); }
+
+  myNickDiv.innerHTML = `<span style="color:${color}">${nickname}</span> ${mood}`;
+  socket.emit("join",{name:nickname,color:color,mood:mood});
+  document.body.classList.add("loaded");
+};
+
+socket.on("user list",(users) => {
+  usersDiv.innerHTML = "";
+  users.forEach(user => {
+    if(user.name === nickname) return;
+    const div = document.createElement("div");
+    div.className = "user";
+    div.innerHTML = `<span style="color:${user.color}">${user.name}</span><span class="status">${user.mood}</span>`;
+    div.onclick = () => openPrivateChat(user.name,user.color);
+    usersDiv.appendChild(div);
+  });
+});
+
+let openChats = {};
+function openPrivateChat(to,toColor){
+  if(openChats[to]) return;
+  const chatDiv = document.createElement("div");
+  chatDiv.className = "private-chat";
+  chatDiv.innerHTML = `
+    <strong style="color:${toColor}">${to}</strong>
+    <div class="messages"></div>
+    <input placeholder="message"><div class="mood-buttons">
+    <button onclick="sendPrivateMood('${to}','😃')">😃</button>
+    <button onclick="sendPrivateMood('${to}','😡')">😡</button>
+    <button onclick="sendPrivateMood('${to}','😴')">😴</button>
+    </div>
+    <button class="send-btn">send</button>`;
+
+  privateChatsDiv.appendChild(chatDiv);
+  openChats[to] = chatDiv;
+
+  const input = chatDiv.querySelector("input");
+  const button = chatDiv.querySelector(".send-btn");
+  const messagesDiv = chatDiv.querySelector(".messages");
+
+  button.onclick = () => {
+    const msg = input.value;
+    if(!msg) return;
+    socket.emit("private message",{from:nickname,to,message:msg,color});
+    input.value = "";
+  };
+
+  socket.on("private message",(data) => {
+    if((data.from === nickname && data.to === to) || (data.from === to && data.to === nickname)){
+      const mdiv = document.createElement("div");
+      mdiv.innerHTML = `<span style="color:${data.color}">${data.from}:</span> ${data.message}`;
+      messagesDiv.appendChild(mdiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+  });
+}
+
+function sendPrivateMood(to,emoji){
+  mood = emoji;
+  localStorage.setItem("pesterMood",mood);
+  myNickDiv.innerHTML = `<span style="color:${color}">${nickname}</span> ${mood}`;
+  socket.emit("update mood",{mood:emoji});
+}
+</script>
+
+</body>
+</html>  border: 1px solid #FFD700;
   border-radius: 4px;
   margin-bottom: 6px;
   display: flex;
