@@ -3,7 +3,7 @@ const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http);
 
-app.use(express.static("public"));
+app.use(express.static("public")); // отдаем html и js
 
 let users = [];
 
@@ -35,6 +35,14 @@ io.on("connection", socket => {
     updateUserList();
   });
 
+  function updateUserList() {
+    const list = users.map(u => ({name:u.nickname,color:u.color,mood:u.mood}));
+    users.forEach(u => u.emit("user list", list));
+  }
+
+});
+
+http.listen(process.env.PORT || 3000, () => console.log("server running"));
   function updateUserList() {
     const list = users.map(u => ({name:u.nickname,color:u.color,mood:u.mood}));
     users.forEach(u => u.emit("user list", list));
