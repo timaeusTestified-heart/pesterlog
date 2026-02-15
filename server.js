@@ -3,50 +3,58 @@ const app = express();
 const http = require("http").createServer(app);
 const io = require("socket.io")(http);
 
-app.use(express.static("public")); // отдаём index.html и все файлы из public/
+const PORT = process.env.PORT || 3000;
 
-let users = []; // список подключенных пользователей
+// статические файлы (HTML, CSS, JS)
+app.use(express.static("public"));
+
+// хранение пользователей и их настроения
+let users = {};
 
 io.on("connection", (socket) => {
+  console.log("new user connected:", socket.id);
 
-  // когда клиент присоединяется
+  // пользователь присоединился
   socket.on("join", (data) => {
-    socket.nickname = data.name;
-    socket.color = data.color;
-    socket.mood = data.mood;
-    users.push(socket);
-    updateUserList();
+    users[socket.id] = {
+      name: data.name,
+      color: data.color,
+      mood: data.mood
+    };
+    io.emit("user list", Object.values(users));
   });
 
-  // системные сообщения (общий чат)
+  // общий чат
   socket.on("chat message", (msg) => {
-    io.emit("chat message", msg); // всем подключенным
+    io.emit("chat message", msg);
   });
 
   // приватные сообщения
-  socket.on("private message", (msg) => {
-    const toSocket = users.find(u => u.nickname === msg.to);
-    if(toSocket) toSocket.emit("private message", msg);
-    socket.emit("private message", msg); // отправляем себе тоже
+  socket.on("private message", (data) => {
+    // ищем id получателя по имени
+    const toSocketId = Object.keys(users).find(id => users[id].name === data.to);
+    if(toSocketId) {
+      socket.emit("private message", data); // отправляем себе
+      io.to(toSocketId).emit("private message", data); // отправляем получателю
+    }
   });
 
   // обновление настроения
   socket.on("update mood", (data) => {
-    socket.mood = data.mood;
-    updateUserList();
+    if(users[socket.id]){
+      users[socket.id].mood = data.mood;
+      io.emit("user list", Object.values(users));
+    }
   });
 
   // отключение пользователя
   socket.on("disconnect", () => {
-    users = users.filter(u => u !== socket);
-    updateUserList();
+    delete users[socket.id];
+    io.emit("user list", Object.values(users));
+    console.log("user disconnected:", socket.id);
   });
-
-  function updateUserList() {
-    const list = users.map(u => ({name:u.nickname, color:u.color, mood:u.mood}));
-    users.forEach(u => u.emit("user list", list));
-  }
 });
 
-// порт Render или 3000 локально
-http.listen(process.env.PORT || 3000, () => console.log("server running"));
+http.listen(PORT, () => {
+  console.log(`server running on port ${PORT}`);
+});
