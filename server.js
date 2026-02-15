@@ -1,40 +1,36 @@
-const express = require("express");
-const app = express();
-const http = require("http").createServer(app);
-const io = require("socket.io")(http);
+const io = require('socket.io')(server);
+let users = {};
 
-app.use(express.static("public"));
-
-// все пользователи
-let users = {}; // socket.id -> {name, color}
-
-// приватные чаты
-let privateChats = {}; // "Alice|Bob" -> [{from, to, message, color}]
-
-io.on("connection", (socket) => {
-
-  // когда пользователь заходит
-  socket.on("join", (user) => {
-    users[socket.id] = user;
-    io.emit("user list", Object.values(users));
+io.on('connection', socket=>{
+  socket.on('join', data=>{
+    users[socket.id] = {name:data.name,color:data.color,mood:data.mood};
+    io.emit('user list', Object.values(users));
   });
 
-  // общий чат
-  socket.on("chat message", (data) => {
-    io.emit("chat message", data);
+  socket.on('chat message', data=>{
+    io.emit('chat message', data);
   });
 
-  // приватный чат
-  socket.on("private message", (data) => {
-    const {from, to, message, color} = data;
-    const key = [from, to].sort().join("|");
-    if (!privateChats[key]) privateChats[key] = [];
-    privateChats[key].push({from, to, message, color});
+  // приватные сообщения
+  socket.on('private message', data=>{
+    for(let id in users){
+      if(users[id].name===data.to || users[id].name===data.from){
+        io.to(id).emit('private message', data);
+      }
+    }
+  });
 
-    // отправка получателю
-    const recipient = Object.keys(users).find(id => users[id].name === to);
-    if (recipient) {
-      io.to(recipient).emit("private message", {from, to, message, color});
+  // обновление настроения
+  socket.on('update mood', data=>{
+    if(users[socket.id]) users[socket.id].mood = data.mood;
+    io.emit('user list', Object.values(users));
+  });
+
+  socket.on('disconnect', ()=>{
+    delete users[socket.id];
+    io.emit('user list', Object.values(users));
+  });
+});      io.to(recipient).emit("private message", {from, to, message, color});
     }
 
     // отправка обратно отправителю (чтобы его чат обновился)
