@@ -5,7 +5,6 @@
 <title>pester mini light</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-/* скрываем страницу по умолчанию */
 body {
   visibility: hidden;
   margin:0;
@@ -15,13 +14,8 @@ body {
   color:#000;
   height:100vh;
 }
+body.loaded { visibility: visible; }
 
-/* показываем страницу после полной загрузки */
-body.loaded {
-  visibility: visible;
-}
-
-/* sidebar с корешами */
 #sidebar {
   width:200px;
   background:#fff;
@@ -45,7 +39,6 @@ body.loaded {
 .user:hover {background:#fffacd;}
 .status {font-size:12px;}
 
-/* основной чат */
 #chat-container {
   flex:1;
   display:flex;
@@ -64,7 +57,6 @@ body.loaded {
   box-shadow: inset 0 0 5px rgba(0,0,0,0.05);
 }
 
-/* приватные чаты */
 .private-chat {
   border:2px solid #FFD700;
   padding:5px;
@@ -82,7 +74,6 @@ body.loaded {
   margin-bottom:5px;
 }
 
-/* input и кнопки */
 input, button {
   background:#fff;
   color:#000;
@@ -95,7 +86,6 @@ input, button {
 button:hover {background:#fffacd;}
 .mood-buttons button {margin-right:5px; cursor:pointer;}
 
-/* анимация */
 @keyframes fadeIn {from{opacity:0; transform:translateY(-5px);} to{opacity:1; transform:translateY(0);}}
 </style>
 <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
@@ -131,49 +121,65 @@ const ping = document.getElementById("ping");
 const privateChatsDiv = document.getElementById("private-chats");
 
 let nickname = "";
-let color = "";
 let mood = "";
 
-/* больше цветов для ника */
-const nickColors = ["#FF4500","#1E90FF","#32CD32","#FFD700","#FF69B4","#8A2BE2","#00CED1","#FF6347","#FF1493","#00FA9A"];
+// расширенная палитра цветов
+const nickColors = [
+  "#FF4500","#1E90FF","#32CD32","#FFD700","#FF69B4","#8A2BE2","#00CED1","#FF6347","#FF1493","#00FA9A",
+  "#FFA500","#7FFF00","#DC143C","#00BFFF","#8B008B","#ADFF2F","#FF1493","#20B2AA","#FF6347","#4682B4",
+  "#BA55D3","#7CFC00","#FF00FF","#FF8C00","#00FF7F","#1E90FF","#FF69B4","#9370DB","#00FA9A","#FFB6C1"
+];
+function randomNickColor() { return nickColors[Math.floor(Math.random()*nickColors.length)]; }
 
-/* генератор ника */
+// генератор ника
 const adjectives = ["виниловый","пурпурный","космический","электрический","лунный","серебряный","пылающий","туманный","шумный","голографический","кибернетический","древний"];
 const nouns = ["Демируг","Хранитель","Король","Скиталец","Трикстер","Маг","Архитектор","Тень","Призрак","Созидатель","Манипулятор","Провидец"];
+function randomNick(){ return adjectives[Math.floor(Math.random()*adjectives.length)] + nouns[Math.floor(Math.random()*nouns.length)]; }
 
-function randomNick() {return adjectives[Math.floor(Math.random()*adjectives.length)] + nouns[Math.floor(Math.random()*nouns.length)];}
-function randomColor() {return nickColors[Math.floor(Math.random()*nickColors.length)];}
+// сокращения для системного сообщения
+const nickAbbr = {
+  "ЛунныйТрикстер":"ЛТ",
+  "КорольБотанов":"КБ",
+  "ВиниловыйДемируг":"ВД",
+  "ПурпурныйХранитель":"ПХ",
+  "КосмическийСкиталец":"КС",
+  "ЭлектрическийМаг":"ЭМ",
+  "ЛунныйПризрак":"ЛП",
+  "СеребряныйСозидатель":"СС",
+  "ПылающийАрхитектор":"ПА",
+  "ТуманныйТрикстер":"ТТ",
+  "ШумныйМанипулятор":"ШМ",
+  "ГолографическийПровидец":"ГП",
+  "КибернетическийХранитель":"КХ",
+  "ДревнийКороль":"ДК"
+};
 
-/* загрузка сохраненного ника и цвета */
 window.onload = ()=>{
   let savedNick = localStorage.getItem("pesterNick");
   let savedColor = localStorage.getItem("pesterColor");
   let savedMood = localStorage.getItem("pesterMood");
-  if(savedNick && savedColor){nickname=savedNick;color=savedColor;} else {nickname=randomNick();color=randomColor();localStorage.setItem("pesterNick",nickname);localStorage.setItem("pesterColor",color);}
-  if(savedMood){mood=savedMood;} else {mood="😃";localStorage.setItem("pesterMood",mood);}
-  document.getElementById("name").value = nickname;
-  socket.emit("join",{name:nickname,color:color,mood:mood});
 
-  // показываем страницу после полной загрузки
+  if(savedNick && savedColor){nickname=savedNick;} else {nickname=randomNick(); savedColor=randomNickColor(); nickname=randomNick(); localStorage.setItem("pesterNick",nickname); localStorage.setItem("pesterColor",savedColor);}
+  if(savedMood){mood=savedMood;} else {mood="😃"; localStorage.setItem("pesterMood",mood);}
+
+  document.getElementById("name").value = nickname;
+  socket.emit("join",{name:nickname,color:savedColor,mood:mood});
   document.body.classList.add('loaded');
 };
 
-/* запрещаем менять цвет */
 document.getElementById("name").addEventListener("change", ()=>{
   nickname = document.getElementById("name").value;
   localStorage.setItem("pesterNick",nickname);
-  socket.emit("join",{name:nickname,color:color,mood:mood});
+  socket.emit("join",{name:nickname,color:randomNickColor(),mood:mood});
 });
 
-/* отправка системного сообщения */
 function send(){
   const message = document.getElementById("message").value;
   if(!nickname||!message) return;
-  socket.emit("chat message",{name:nickname,color:color,message:message});
+  socket.emit("chat message",{name:nickname,color:randomNickColor(),message:message});
   document.getElementById("message").value="";
 }
 
-/* список корешей и отображение настроения */
 socket.on("user list",(users)=>{
   usersDiv.innerHTML="";
   users.forEach(user=>{
@@ -186,30 +192,45 @@ socket.on("user list",(users)=>{
   });
 });
 
-/* приватные чаты */
 let openChats={};
 
 function openPrivateChat(to,toColor){
   if(openChats[to]) return;
-  const chatDiv=document.createElement("div");
+  const myColor = randomNickColor();
+  const theirColor = randomNickColor();
+
+  const chatDiv = document.createElement("div");
   chatDiv.className="private-chat";
-  chatDiv.innerHTML=`<strong style="color:${toColor}">${to}</strong><div class="messages"></div>
-  <input placeholder="message"><div class="mood-buttons">
-  <button onclick="sendPrivateMood('${to}','😃')">😃</button>
-  <button onclick="sendPrivateMood('${to}','😡')">😡</button>
-  <button onclick="sendPrivateMood('${to}','😴')">😴</button>
-  </div><button class="send-btn">send</button>`;
+  chatDiv.innerHTML=`
+    <strong style="color:${theirColor}">${to}</strong>
+    <div class="messages"></div>
+    <input placeholder="message">
+    <div class="mood-buttons">
+      <button onclick="sendPrivateMood('${to}','😃')">😃</button>
+      <button onclick="sendPrivateMood('${to}','😡')">😡</button>
+      <button onclick="sendPrivateMood('${to}','😴')">😴</button>
+    </div>
+    <button class="send-btn">send</button>
+  `;
   privateChatsDiv.appendChild(chatDiv);
   openChats[to]=chatDiv;
 
-  const input=chatDiv.querySelector("input");
-  const button=chatDiv.querySelector(".send-btn");
-  const messagesDiv=chatDiv.querySelector(".messages");
+  const messagesDiv = chatDiv.querySelector(".messages");
+  const input = chatDiv.querySelector("input");
+  const button = chatDiv.querySelector(".send-btn");
+
+  // системное сообщение при старте диалога
+  const abbrFrom = nickAbbr[nickname] || nickname.slice(0,2).toUpperCase();
+  const abbrTo = nickAbbr[to] || to.slice(0,2).toUpperCase();
+  const sysMsg = document.createElement("div");
+  sysMsg.style.fontStyle = "italic";
+  sysMsg.innerText = `[${abbrFrom}] начал доставать [${abbrTo}]`;
+  messagesDiv.appendChild(sysMsg);
 
   button.onclick=()=>{
     const msg=input.value;
     if(!msg) return;
-    socket.emit("private message",{from:nickname,to,message:msg,color});
+    socket.emit("private message",{from:nickname,to,message:msg,color:myColor});
     input.value="";
   };
 
@@ -223,14 +244,12 @@ function openPrivateChat(to,toColor){
   });
 }
 
-/* кнопки настроения приватного чата */
 function sendPrivateMood(to,emoji){
   mood=emoji;
   localStorage.setItem("pesterMood",mood);
   socket.emit("update mood",{mood:emoji});
 }
 
-/* обработка сообщений системы */
 socket.on("chat message",(data)=>{
   const div=document.createElement("div");
   div.innerHTML=`<span style="color:${data.color}">${data.name}:</span> ${data.message}`;
