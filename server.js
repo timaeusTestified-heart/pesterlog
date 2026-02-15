@@ -42,15 +42,4 @@ io.on("connection", socket => {
 
 });
 
-http.listen(process.env.PORT || 3000, () => console.log("server running"));    socket.emit("private message", {from, to, message, color});
-  });
-
-  // пользователь вышел
-  socket.on("disconnect", () => {
-    delete users[socket.id];
-    io.emit("user list", Object.values(users));
-  });
-
-});
-
-http.listen(3000, () => console.log("server started"));
+http.listen(process.env.PORT || 3000, () => console.log("server running"));
