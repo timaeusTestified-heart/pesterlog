@@ -1,13 +1,10 @@
 {
   "name": "pesterlog",
   "version": "1.0.0",
-  "description": "PesterLog 6.0 fan remake",
+  "description": "PesterLog Light chat",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
-  },
-  "engines": {
-    "node": ">=18.0.0"
   },
   "dependencies": {
     "express": "^4.18.2",
