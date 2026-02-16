@@ -1,260 +1,117 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-<meta charset="UTF-8">
-<title>PesterLog Light</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<style>
-/* скрываем страницу пока не загрузится */
-body {
-  visibility: hidden;
-  margin:0;
-  font-family: monospace;
-  display:flex;
-  background:#fff;
-  color:#000;
-  height:100vh;
-}
-
-/* показываем страницу */
-body.loaded { visibility: visible; }
-
-/* sidebar с друзьями */
-#sidebar {
-  width:220px;
-  background:#fff;
-  border-right:3px solid #FFD700;
-  padding:10px;
-  overflow-y:auto;
-}
-#sidebar h4 { color:#FFD700; margin-top:0; }
-.user {
-  cursor:pointer;
-  margin-bottom:5px;
-  padding:6px;
-  border-radius:4px;
-  border:1px solid #FFD700;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  transition: background 0.3s;
-}
-.user:hover {background:#fffacd;}
-.status {font-size:12px;}
-
-/* контейнер чата */
-#chat-container {
-  flex:1;
-  display:flex;
-  flex-direction:column;
-  padding:10px;
-  overflow:hidden;
-}
-#chat {
-  flex:1;
-  border:2px solid #FFD700;
-  padding:10px;
-  border-radius:6px;
-  margin-bottom:10px;
-  background:#fff;
-  overflow-y:auto;
-}
-
-/* приватные чаты */
-.private-chat {
-  border:2px solid #FFD700;
-  padding:5px;
-  margin-top:10px;
-  height:200px;
-  overflow-y:auto;
-  border-radius:6px;
-  background:#fff;
-}
-.private-chat .messages {
-  max-height:140px;
-  overflow-y:auto;
-  margin-bottom:5px;
-}
-
-/* input и кнопки */
-input, button {
-  background:#fff;
-  color:#000;
-  border:1px solid #FFD700;
-  font-family: monospace;
-  margin:2px 0;
-  padding:4px;
-  border-radius:4px;
-}
-button:hover {background:#fffacd;}
-.mood-buttons button {margin-right:5px; cursor:pointer;}
-
-/* цветник инпут */
-#colorInput { width:80px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PESTERCHUM 6.0</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        /* Весь стиль из предыдущего сообщения сохраняется, добавляем модалку */
+        #login-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.8); display: flex; 
+            justify-content: center; align-items: center; z-index: 100;
+        }
+        .login-box {
+            background: #ffc600; padding: 20px; border: 4px double black;
+            text-align: center; font-family: 'VT323', monospace;
+        }
+        .hidden { display: none !important; }
+        input, select { margin: 10px; padding: 5px; font-family: 'VT323'; font-size: 18px; }
+    </style>
 </head>
-
 <body>
-<div id="sidebar">
-  <h4>Друзья</h4>
-  <div id="users"></div>
-</div>
 
-<div id="chat-container">
-  <div id="chat"></div>
-
-  <input id="name" placeholder="никнейм">
-  <input id="colorInput" type="color" title="Выбрать цвет ника">
-  <input id="message" placeholder="сообщение">
-  <button onclick="send()">отправить</button>
-
-  <div id="private-chats"></div>
-</div>
-
-<audio id="ping">
-  <source src="https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg" type="audio/ogg">
-</audio>
-
-<script src="/socket.io/socket.io.js"></script>
-<script>
-const socket = io();
-const chat = document.getElementById("chat");
-const usersDiv = document.getElementById("users");
-const ping = document.getElementById("ping");
-const privateChatsDiv = document.getElementById("private-chats");
-
-let nickname = "";
-let color = "#000000";
-let mood = "";
-
-// больше цветов для ника
-const nickColors = ["#FF4500","#1E90FF","#32CD32","#FFD700","#FF69B4","#8A2BE2","#00CED1","#FF6347","#FF1493","#00FA9A","#7FFF00","#DA70D6","#00BFFF"];
-
-// генератор ника
-const adjectives = ["виниловый","пурпурный","космический","электрический","лунный","серебряный","пылающий","туманный","шумный","голографический","кибернетический","древний"];
-const nouns = ["Демируг","Хранитель","Король","Скиталец","Трикстер","Маг","Архитектор","Тень","Призрак","Созидатель","Манипулятор","Провидец"];
-
-function randomNick() {return adjectives[Math.floor(Math.random()*adjectives.length)] + nouns[Math.floor(Math.random()*nouns.length)];}
-function randomColor() {return nickColors[Math.floor(Math.random()*nickColors.length)];}
-
-// сокращения ников для системного сообщения
-function shortNick(nick){
-  return nick.split(/(?=[А-ЯЁ])/).map(w=>w[0].toUpperCase()).join('');
-}
-
-// загрузка сохраненного ника и цвета
-window.onload = ()=>{
-  let savedNick = localStorage.getItem("pesterNick");
-  let savedColor = localStorage.getItem("pesterColor");
-  let savedMood = localStorage.getItem("pesterMood");
-  if(savedNick){ nickname = savedNick; } else { nickname = randomNick(); localStorage.setItem("pesterNick",nickname); }
-  if(savedColor){ color = savedColor; } else { color = randomColor(); localStorage.setItem("pesterColor",color); }
-  if(savedMood){ mood = savedMood; } else { mood = "😃"; localStorage.setItem("pesterMood",mood); }
-
-  document.getElementById("name").value = nickname;
-  document.getElementById("colorInput").value = color;
-
-  const systemMsg = `[${shortNick(nickname)}] начал доставать [${shortNick("КорольБотанов")}]`;
-  const div = document.createElement("div");
-  div.innerHTML = `<strong style="color:#000">${systemMsg}</strong>`;
-  chat.appendChild(div);
-
-  socket.emit("join",{name:nickname,color:color,mood:mood});
-  document.body.classList.add('loaded');
-};
-
-// смена ника
-document.getElementById("name").addEventListener("change", ()=>{
-  nickname = document.getElementById("name").value;
-  localStorage.setItem("pesterNick",nickname);
-  socket.emit("join",{name:nickname,color:color,mood:mood});
-});
-
-// смена цвета
-document.getElementById("colorInput").addEventListener("input", ()=>{
-  color = document.getElementById("colorInput").value;
-  localStorage.setItem("pesterColor",color);
-  socket.emit("update color",{color});
-});
-
-// отправка сообщения
-function send(){
-  const message = document.getElementById("message").value;
-  if(!nickname||!message) return;
-  socket.emit("chat message",{name:nickname,color:color,message:message});
-  document.getElementById("message").value="";
-}
-
-// список друзей и настроение
-socket.on("user list",(users)=>{
-  usersDiv.innerHTML="";
-  users.forEach(user=>{
-    if(user.name===nickname) return;
-    const div=document.createElement("div");
-    div.className="user";
-    div.innerHTML=`<span style="color:${user.color}">${user.name}</span><span class="status">${user.mood}</span>`;
-    div.onclick=()=>openPrivateChat(user.name,user.color);
-    usersDiv.appendChild(div);
-  });
-});
-
-// приватные чаты
-let openChats={};
-
-function openPrivateChat(to,toColor){
-  if(openChats[to]) return;
-  const chatDiv=document.createElement("div");
-  chatDiv.className="private-chat";
-  chatDiv.innerHTML=`<strong style="color:${toColor}">${to}</strong>
-    <div class="messages"></div>
-    <input placeholder="сообщение">
-    <div class="mood-buttons">
-      <button onclick="sendPrivateMood('${to}','😃')">😃</button>
-      <button onclick="sendPrivateMood('${to}','😡')">😡</button>
-      <button onclick="sendPrivateMood('${to}','😴')">😴</button>
+<div id="login-overlay">
+    <div class="login-box">
+        <h2>ESTABLISH CONNECTION</h2>
+        <input type="text" id="handleInput" placeholder="CHUMHANDLE (e.g. ghostDunk)">
+        <br>
+        <label>TEXT COLOR:</label>
+        <input type="color" id="colorInput" value="#000000">
+        <br>
+        <button onclick="connect()">ESTABLISH</button>
     </div>
-    <button class="send-btn">отправить</button>`;
-  privateChatsDiv.appendChild(chatDiv);
-  openChats[to]=chatDiv;
+</div>
 
-  const input=chatDiv.querySelector("input");
-  const button=chatDiv.querySelector(".send-btn");
-  const messagesDiv=chatDiv.querySelector(".messages");
+<div class="app-container">
+    <div class="sidebar">
+        <div class="logo-text">PESTERCHUM 6.0</div>
+        <div class="chum-box" id="chumroll">
+            <div class="chum-item" style="color:gray;">-- empty --</div>
+        </div>
+        <div class="handle-display" id="myHandle">offline</div>
+    </div>
 
-  button.onclick=()=>{
-    const msg=input.value;
-    if(!msg) return;
-    socket.emit("private message",{from:nickname,to,message:msg,color});
-    input.value="";
-  };
+    <div class="chat-area">
+        <div class="window-frame">
+            <div class="window-header" id="chatTitle">:: pesterlog ::</div>
+            <div id="pesterlog"></div>
+            <div class="input-area">
+                <textarea id="userInput" placeholder="Type message..."></textarea>
+                <button onclick="sendMsg()">PESTER!</button>
+            </div>
+        </div>
+    </div>
+</div>
 
-  socket.on("private message",(data)=>{
-    if((data.from===nickname && data.to===to)||(data.from===to && data.to===nickname)){
-      const div=document.createElement("div");
-      div.innerHTML=`<span style="color:${data.color}">${data.from}:</span> ${data.message}`;
-      messagesDiv.appendChild(div);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+<script>
+    // ВСТАВЬ СЮДА ССЫЛКУ ОТ RENDER
+    const SERVER_URL = "https://твой-сервер.onrender.com"; 
+    let socket;
+    let myData = {};
+
+    function connect() {
+        const handle = document.getElementById('handleInput').value;
+        const color = document.getElementById('colorInput').value;
+        
+        if(!handle) return alert("Enter handle!");
+
+        myData = { 
+            handle: handle, 
+            abbr: handle.substring(0,2).toUpperCase(),
+            color: color 
+        };
+
+        socket = io(SERVER_URL);
+
+        socket.on('connect', () => {
+            document.getElementById('login-overlay').classList.add('hidden');
+            document.getElementById('myHandle').innerText = handle;
+            socket.emit('join', myData);
+        });
+
+        socket.on('new_msg', (data) => {
+            renderMessage(data);
+        });
+
+        socket.on('system_msg', (msg) => {
+            const div = document.createElement('div');
+            div.className = "system-msg";
+            div.innerText = msg;
+            document.getElementById('pesterlog').appendChild(div);
+        });
     }
-  });
-}
 
-// кнопки настроения приватного чата
-function sendPrivateMood(to,emoji){
-  mood=emoji;
-  localStorage.setItem("pesterMood",mood);
-  socket.emit("update mood",{mood:emoji});
-}
+    function sendMsg() {
+        const text = document.getElementById('userInput').value;
+        if(!text) return;
 
-// общий чат
-socket.on("chat message",(data)=>{
-  const div=document.createElement("div");
-  div.innerHTML=`<span style="color:${data.color}">${data.name}:</span> ${data.message}`;
-  chat.appendChild(div);
-  ping.play();
-  chat.scrollTop = chat.scrollHeight;
-});
+        socket.emit('send_msg', {
+            ...myData,
+            message: text
+        });
+        document.getElementById('userInput').value = "";
+    }
+
+    function renderMessage(data) {
+        const log = document.getElementById('pesterlog');
+        const div = document.createElement('div');
+        div.innerHTML = `<span style="color:${data.color}">${data.abbr}: ${data.message}</span>`;
+        log.appendChild(div);
+        log.scrollTop = log.scrollHeight;
+    }
 </script>
-
 </body>
 </html>
