@@ -1,24 +1,32 @@
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
-
 const app = express();
-const server = http.createServer(app);
-const io = new Server(server, {
-    cors: { origin: "*" } // Разрешаем доступ с твоего GitHub
+const http = require('http').createServer(app);
+const io = require('socket.io')(http, {
+    cors: {
+        origin: "*", // Это критически важно, чтобы GitHub мог подключиться
+        methods: ["GET", "POST"]
+    }
 });
 
 io.on('connection', (socket) => {
-    console.log('User connected');
+    console.log('Пользователь вошел');
 
     socket.on('join', (data) => {
-        socket.broadcast.emit('system_msg', `-- ${data.handle} [${data.abbr}] began pestering everyone --`);
+        // Уведомление о входе на русском
+        io.emit('system_msg', `-- ${data.handle} [${data.abbr}] начал доставать всех --`);
     });
 
     socket.on('send_msg', (data) => {
-        io.emit('new_msg', data); // Рассылаем всем
+        io.emit('new_msg', data);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Пользователь вышел');
     });
 });
 
+// Render сам подставит нужный порт
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+http.listen(PORT, () => {
+    console.log(`Сервер запущен на порту ${PORT}`);
+});
