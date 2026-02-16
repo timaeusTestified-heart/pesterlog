@@ -3,7 +3,11 @@ const app = express();
 const http = require("http").createServer(app);
 const { Server } = require("socket.io");
 
-const io = new Server(http);
+const io = new Server(http, {
+  cors: {
+    origin: "*"
+  }
+});
 
 const PORT = process.env.PORT || 3000;
 
@@ -12,9 +16,10 @@ app.use(express.static("public"));
 
 let users = {};
 
+// подключение
 io.on("connection", (socket) => {
 
-  // вход пользователя
+  // вход
   socket.on("join", (data) => {
     users[socket.id] = {
       name: data.name,
@@ -50,10 +55,12 @@ io.on("connection", (socket) => {
     }
   });
 
+  // отключение
   socket.on("disconnect", () => {
     delete users[socket.id];
     io.emit("user list", Object.values(users));
   });
+
 });
 
 http.listen(PORT, () => {
