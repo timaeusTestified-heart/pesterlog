@@ -1,8 +1,6 @@
 {
   "name": "pesterchum-server",
   "version": "1.0.0",
-  "description": "Backend for Pesterchum Clone",
-  "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
