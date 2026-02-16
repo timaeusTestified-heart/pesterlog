@@ -1,68 +1,65 @@
-const express = require("express");
+const express = require('express');
 const app = express();
-const http = require("http").createServer(app);
-const { Server } = require("socket.io");
-
-const io = new Server(http, {
-  cors: {
-    origin: "*"
-  }
-});
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
 
 const PORT = process.env.PORT || 3000;
 
-// обязательно для render
-app.use(express.static("public"));
-
+// хранилище пользователей
 let users = {};
 
-// подключение
-io.on("connection", (socket) => {
+app.use(express.static('public'));
 
-  // вход
-  socket.on("join", (data) => {
-    users[socket.id] = {
-      name: data.name,
-      color: data.color,
-      mood: data.mood
-    };
+// при подключении сокета
+io.on('connection', socket => {
 
-    io.emit("user list", Object.values(users));
+  // когда пользователь присоединяется
+  socket.on('join', data => {
+    users[socket.id] = { name: data.name, color: data.color, mood: data.mood };
+    io.emit('user list', Object.values(users));
   });
 
-  // общий чат
-  socket.on("chat message", (data) => {
-    io.emit("chat message", data);
-  });
-
-  // приватные сообщения
-  socket.on("private message", (data) => {
-    const targetId = Object.keys(users).find(
-      id => users[id].name === data.to
-    );
-
-    if (targetId) {
-      io.to(targetId).emit("private message", data);
-      socket.emit("private message", data);
+  // обновление цвета
+  socket.on('update color', data => {
+    if(users[socket.id]){
+      users[socket.id].color = data.color;
+      io.emit('user list', Object.values(users));
     }
   });
 
   // обновление настроения
-  socket.on("update mood", (data) => {
-    if (users[socket.id]) {
+  socket.on('update mood', data => {
+    if(users[socket.id]){
       users[socket.id].mood = data.mood;
-      io.emit("user list", Object.values(users));
+      io.emit('user list', Object.values(users));
     }
   });
 
-  // отключение
-  socket.on("disconnect", () => {
-    delete users[socket.id];
-    io.emit("user list", Object.values(users));
+  // общий чат
+  socket.on('chat message', data => {
+    io.emit('chat message', data);
   });
 
+  // приватные сообщения
+  socket.on('private message', data => {
+    // ищем сокет того, кому пишут
+    for(let id in users){
+      if(users[id].name === data.to){
+        io.to(id).emit('private message', data);
+        break;
+      }
+    }
+    // отправляем отправителю тоже, чтобы отображалось
+    socket.emit('private message', data);
+  });
+
+  // отключение
+  socket.on('disconnect', () => {
+    delete users[socket.id];
+    io.emit('user list', Object.values(users));
+  });
 });
 
 http.listen(PORT, () => {
-  console.log("server running on port " + PORT);
+  console.log(`Server started on port ${PORT}`);
 });
