@@ -9,14 +9,13 @@
     <style>
         :root {
             --pc-yellow: #ffc600;
-            --pc-black: #000000;
             --pc-blue-top: #8cb8ff;
             --pc-blue-bot: #5e8ddb;
         }
 
         body, html {
             margin: 0; padding: 0; height: 100%;
-            background-color: #333;
+            background-color: #222;
             font-family: 'VT323', monospace;
             overflow: hidden;
         }
@@ -27,86 +26,118 @@
             background: var(--pc-yellow); display: flex; 
             flex-direction: column; justify-content: center; align-items: center; z-index: 1000;
         }
+
         .login-card {
-            background: var(--pc-yellow); border: 4px double black; padding: 20px; text-align: center;
-        }
-        .login-card input {
-            display: block; margin: 10px auto; padding: 10px; border: 2px solid black; font-family: 'VT323'; font-size: 20px;
+            background: var(--pc-yellow); border: 4px double black; padding: 30px; text-align: center;
+            box-shadow: 5px 5px 0px rgba(0,0,0,0.2);
         }
 
-        /* Основной интерфейс */
+        .login-card input {
+            display: block; margin: 15px auto; padding: 10px; border: 2px solid black; 
+            font-family: 'VT323'; font-size: 24px; width: 200px; text-align: center;
+        }
+
+        /* Основной экран */
         .app-container {
             display: flex; height: 100vh; background: var(--pc-yellow); border: 2px solid black; box-sizing: border-box;
         }
 
-        /* Левая панель */
+        /* Сайдбар */
         .sidebar {
-            width: 160px; display: flex; flex-direction: column; padding: 10px; border-right: 3px solid black;
+            width: 180px; display: flex; flex-direction: column; padding: 10px; border-right: 3px solid black;
         }
-        .logo { font-size: 26px; font-weight: bold; color: white; text-shadow: 2px 2px black; margin-bottom: 10px; }
-        .avatar-placeholder { background: black; height: 80px; display: flex; justify-content: center; align-items: center; margin-bottom: 10px; }
-        .chum-list { background: black; flex-grow: 1; border: 2px inset white; overflow-y: auto; padding: 5px; color: white; }
-        
-        /* Правая панель */
-        .main-chat { flex-grow: 1; display: flex; flex-direction: column; padding: 5px; background: #c0c0c0; border: 2px solid black; margin: 5px; }
-        .window-bar { background: linear-gradient(to bottom, var(--pc-blue-top), var(--pc-blue-bot)); color: white; padding: 5px; text-align: center; border: 1px solid white; font-size: 14px; margin-bottom: 5px; }
-        .pesterlog { background: white; flex-grow: 1; border: 2px inset gray; padding: 10px; overflow-y: auto; font-family: 'Courier New', monospace; font-weight: bold; color: black; }
-        
-        .input-box { background: var(--pc-yellow); padding: 5px; border-top: 2px solid black; }
-        textarea { width: 100%; height: 60px; border: 2px inset white; resize: none; font-family: 'Courier New'; font-weight: bold; font-size: 16px; box-sizing: border-box; }
-        
+
+        .logo { font-size: 28px; font-weight: bold; color: white; text-shadow: 3px 3px black; margin-bottom: 10px; }
+
+        .avatar-box { 
+            background: black; height: 100px; display: flex; justify-content: center; 
+            align-items: center; margin-bottom: 15px; border: 2px inset white;
+        }
+
+        .chum-list { 
+            background: black; flex-grow: 1; border: 2px inset white; 
+            overflow-y: auto; padding: 5px; color: white; font-size: 18px;
+        }
+
+        /* Чат */
+        .main-chat { 
+            flex-grow: 1; display: flex; flex-direction: column; 
+            padding: 8px; background: #c0c0c0; border: 2px solid black; margin: 5px; 
+        }
+
+        .window-bar { 
+            background: linear-gradient(to bottom, var(--pc-blue-top), var(--pc-blue-bot)); 
+            color: white; padding: 6px; text-align: center; border: 1px solid white; 
+            font-size: 14px; font-family: sans-serif; text-transform: lowercase;
+        }
+
+        .pesterlog { 
+            background: white; flex-grow: 1; border: 2px inset gray; 
+            padding: 10px; overflow-y: auto; font-family: 'Courier New', monospace; 
+            font-weight: bold; color: black; font-size: 15px;
+        }
+
+        .input-box { background: var(--pc-yellow); padding: 8px; border-top: 2px solid black; }
+
+        textarea { 
+            width: 100%; height: 70px; border: 2px inset white; resize: none; 
+            font-family: 'Courier New'; font-weight: bold; font-size: 16px; box-sizing: border-box; padding: 5px;
+        }
+
         .btn { 
-            background: #ccc; border: 2px outset white; padding: 5px; width: 100%; font-family: 'VT323'; font-size: 20px; cursor: pointer; margin-top: 5px;
+            background: #e0e0e0; border: 3px outset white; padding: 8px; 
+            width: 100%; font-family: 'VT323'; font-size: 22px; cursor: pointer; margin-top: 5px;
         }
-        .btn:active { border-style: inset; }
+
+        .btn:active { border-style: inset; background: #ccc; }
+
         .hidden { display: none !important; }
 
         @media (max-width: 600px) {
             .app-container { flex-direction: column; }
-            .sidebar { width: 100%; height: 35%; border-right: none; border-bottom: 3px solid black; }
+            .sidebar { width: 100%; height: 30%; border-right: none; border-bottom: 3px solid black; }
         }
     </style>
 </head>
 <body>
 
+<audio id="pesterSound" src="https://www.soundboard.com/handler/Downloadaudio.ashx?id=302325"></audio>
+
 <div id="login-overlay">
     <div class="login-card">
-        <h1 style="margin:0;">ДОСТАНЬ КОРЕША 6.0</h1>
-        <p>ВВЕДИ СВОЙ НИКНЕЙМ:</p>
-        <input type="text" id="handleInput" placeholder="например: ghostDunk">
-        <p>ЦВЕТ ТЕКСТА:</p>
+        <h1 class="logo" style="color:white; text-shadow: 2px 2px black;">ДОСТАНЬ КОРЕША</h1>
+        <p style="margin:0; font-weight:bold;">НИКНЕЙМ:</p>
+        <input type="text" id="handleInput" placeholder="например: ghostDunk" maxlength="20">
+        <p style="margin:0; font-weight:bold;">ЦВЕТ ТЕКСТА:</p>
         <input type="color" id="colorInput" value="#000000">
-        <button class="btn" onclick="connectToServer()">ВОЙТИ</button>
+        <button class="btn" onclick="connectToServer()">УСТАНОВИТЬ СВЯЗЬ</button>
     </div>
 </div>
 
 <div class="app-container">
     <div class="sidebar">
         <div class="logo">PESTERCHUM</div>
-        <div class="avatar-placeholder">
-            <img src="https://file.garden/Z8/smiley.png" width="60" alt=":)">
+        <div class="avatar-box">
+            <img src="https://www.homestuck.com/images/pesterchum/moods/pester.png" width="70" alt="Mood">
         </div>
-        <div style="font-weight:bold; font-size:14px;">СПИСОК КОРЕШЕЙ:</div>
+        <div style="font-weight:bold; font-size:16px;">КОРЕША:</div>
         <div class="chum-list" id="chumroll">
-            </div>
-        <div style="font-weight:bold; font-size:14px; margin-top:5px;">МОЙ НИК:</div>
-        <div id="myHandleDisp" style="background:black; color:white; padding:2px; border:1px solid white;">offline</div>
+            <div style="color:#555;">-- никого нет --</div>
+        </div>
+        <div id="myHandleDisp" style="background:black; color:white; padding:4px; border:1px solid white; margin-top:10px; text-align:center;">OFFLINE</div>
     </div>
 
     <div class="main-chat">
         <div class="window-bar" id="chatTitle">:: pesterlog ::</div>
-        <div class="pesterlog" id="logArea">
-            <div style="color:gray; text-align:center;">-- ожидание подключения --</div>
-        </div>
+        <div class="pesterlog" id="logArea"></div>
         <div class="input-box">
-            <textarea id="msgInput" placeholder="Пиши сюда..."></textarea>
+            <textarea id="msgInput" placeholder="Напиши что-нибудь..."></textarea>
             <button class="btn" onclick="sendMsg()">ДОСТАТЬ!</button>
         </div>
     </div>
 </div>
 
 <script>
-    // ТВОЯ ССЫЛКА НА RENDER
     const SERVER_URL = "https://pesterlog.onrender.com"; 
     let socket;
     let myData = { handle: "", color: "#000000", abbr: "" };
@@ -119,20 +150,23 @@
 
         myData.handle = h;
         myData.color = c;
+        // Берём первые две буквы ника как в оригинале
         myData.abbr = h.substring(0, 2).toUpperCase();
 
-        // Подключаемся к сокету
-        socket = io(SERVER_URL);
+        socket = io(SERVER_URL, { transports: ['websocket', 'polling'] });
 
         socket.on('connect', () => {
             document.getElementById('login-overlay').classList.add('hidden');
             document.getElementById('myHandleDisp').innerText = h;
-            document.getElementById('logArea').innerHTML = `<div style="color:gray; text-align:center;">-- вы подключились к серверу --</div>`;
+            document.getElementById('pesterSound').play(); // Звук при входе
             socket.emit('join', myData);
         });
 
         socket.on('new_msg', (data) => {
             addMessage(data);
+            if (data.handle !== myData.handle) {
+                document.getElementById('pesterSound').play();
+            }
         });
 
         socket.on('system_msg', (txt) => {
@@ -140,12 +174,13 @@
             div.style.color = "gray";
             div.style.textAlign = "center";
             div.style.margin = "10px 0";
+            div.style.fontSize = "13px";
             div.innerText = txt;
             document.getElementById('logArea').appendChild(div);
         });
 
         socket.on('connect_error', () => {
-            alert("Ошибка подключения к серверу Render. Убедитесь, что он запущен!");
+            alert("Сервер Render просыпается... Подождите 30 секунд и попробуйте снова.");
         });
     }
 
@@ -165,11 +200,22 @@
     function addMessage(data) {
         const log = document.getElementById('logArea');
         const div = document.createElement('div');
-        div.style.marginBottom = "5px";
+        div.style.marginBottom = "4px";
+        
+        // Формат ника как в комиксе (например, GT: привет)
         div.innerHTML = `<span style="color:${data.color}">${data.abbr}: ${data.message}</span>`;
+        
         log.appendChild(div);
         log.scrollTop = log.scrollHeight;
     }
+
+    // Отправка по нажатию Enter (для клавиатур)
+    document.getElementById('msgInput').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMsg();
+        }
+    });
 </script>
 
 </body>
