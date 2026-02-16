@@ -7,125 +7,86 @@
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <style>
-        /* Цвета и стили в точности со скриншота */
-        :root {
-            --pc-yellow: #ffc600;
-            --pc-blue-win: #5e8ddb;
-            --pc-red: #ff0000;
-        }
-
-        body, html { margin: 0; padding: 0; height: 100%; background: #333; font-family: 'VT323', monospace; overflow: hidden; }
-
-        /* Окно входа */
+        :root { --pc-yellow: #ffc600; --pc-blue: #5e8ddb; }
+        body, html { margin: 0; padding: 0; height: 100%; background: #222; font-family: 'VT323', monospace; overflow: hidden; }
+        
         #login-overlay {
             position: fixed; top:0; left:0; width:100%; height:100%;
             background: var(--pc-yellow); display: flex; flex-direction: column;
             justify-content: center; align-items: center; z-index: 1000;
         }
+        .login-box { border: 4px double black; padding: 25px; text-align: center; background: var(--pc-yellow); }
+        input { font-family: 'VT323'; font-size: 24px; padding: 5px; border: 2px solid black; margin: 10px 0; width: 200px; }
 
-        .login-card { border: 4px double black; padding: 20px; text-align: center; background: var(--pc-yellow); }
-        input[type="text"] { font-family: 'VT323'; font-size: 24px; padding: 5px; border: 2px solid black; margin: 10px 0; width: 80%; }
-
-        /* Основной интерфейс */
         .app-container { display: flex; height: 100vh; background: var(--pc-yellow); border: 2px solid black; box-sizing: border-box; }
+        .sidebar { width: 250px; display: flex; flex-direction: column; padding: 10px; border-right: 3px solid black; }
+        .pc-title { font-size: 30px; font-weight: bold; color: white; text-shadow: 2px 2px black; }
+        .chumroll { background: black; color: red; flex-grow: 1; border: 2px inset white; overflow-y: auto; padding: 5px; font-size: 20px; }
 
-        /* Левая панель - Клиент */
-        .sidebar { width: 280px; display: flex; flex-direction: column; padding: 5px; border-right: 2px solid black; }
-        .pc-header { font-size: 32px; font-weight: bold; color: white; text-shadow: 2px 2px black; margin-bottom: 5px; }
-        .avatar-area { background: black; height: 80px; display: flex; align-items: center; padding: 0 10px; border: 2px inset white; margin-bottom: 10px; }
+        .chat-area { flex-grow: 1; display: flex; flex-direction: column; padding: 10px; background: #8cb8ff; }
+        .window { background: var(--pc-yellow); border: 2px solid black; height: 100%; display: flex; flex-direction: column; }
+        .win-header { background: linear-gradient(to bottom, #8cb8ff, #5e8ddb); color: white; text-align: center; padding: 5px; border-bottom: 2px solid black; font-size: 14px; }
+        .pesterlog { background: white; flex-grow: 1; margin: 10px; border: 2px inset gray; padding: 10px; overflow-y: auto; font-family: 'Courier New', monospace; font-weight: bold; font-size: 16px; color: black; }
         
-        .chumroll-label { font-size: 18px; font-weight: bold; margin-bottom: 2px; }
-        .chumroll { background: black; color: var(--pc-red); flex-grow: 1; border: 2px inset white; overflow-y: auto; padding: 5px; font-size: 20px; }
+        .input-wrap { margin: 0 10px 10px 10px; border: 2px inset white; background: white; height: 35px; }
+        #msgInput { border: none; width: 100%; height: 100%; outline: none; padding: 0 5px; font-family: 'Courier New'; font-weight: bold; font-size: 16px; }
+        .btn { background: var(--pc-yellow); border: 2px outset white; font-family: 'VT323'; font-size: 20px; cursor: pointer; font-weight: bold; width: 100%; }
         
-        .action-btns { display: flex; gap: 2px; margin-top: 5px; }
-        .btn-small { flex: 1; background: var(--pc-yellow); border: 2px outset white; font-family: 'VT323'; font-size: 16px; cursor: pointer; font-weight: bold; }
-        .btn-red { background: var(--pc-red); color: black; }
-
-        /* Правая панель - Окно чата */
-        .chat-area { flex-grow: 1; display: flex; flex-direction: column; padding: 5px; background: #8cb8ff; }
-        .window-frame { background: var(--pc-yellow); border: 2px solid black; height: 100%; display: flex; flex-direction: column; }
-        .window-header { background: linear-gradient(to bottom, #8cb8ff, #5e8ddb); color: white; text-align: center; padding: 3px; border-bottom: 2px solid black; font-family: sans-serif; font-size: 12px; }
-        
-        .pesterlog { background: white; flex-grow: 1; margin: 10px; border: 2px inset gray; padding: 10px; overflow-y: auto; font-family: 'Courier New', monospace; font-weight: bold; font-size: 16px; }
-        
-        .input-box { margin: 0 10px 10px 10px; border: 2px inset white; background: white; height: 30px; display: flex; }
-        #msgInput { border: none; width: 100%; font-family: 'Courier New'; font-weight: bold; outline: none; padding: 0 5px; }
-
         .hidden { display: none !important; }
-
-        @media (max-width: 600px) {
-            .app-container { flex-direction: column; }
-            .sidebar { width: 100%; height: 45%; border-right: none; border-bottom: 2px solid black; }
-        }
+        @media (max-width: 600px) { .app-container { flex-direction: column; } .sidebar { width: 100%; height: 35%; border-right: none; } }
     </style>
 </head>
 <body>
 
 <div id="login-overlay">
-    <div class="login-card">
-        <div class="pc-header">PESTERCHUM 6.0</div>
-        <p>ВВЕДИ СВОЙ НИКНЕЙМ:</p>
-        <input type="text" id="handleInput" placeholder="ghostDunk" maxlength="15">
-        <button class="btn-small" style="padding:10px 20px; font-size:24px;" onclick="connect()">ВОЙТИ</button>
+    <div class="login-box">
+        <div class="pc-title">PESTERCHUM 6.0</div>
+        <input type="text" id="handleInput" placeholder="НИКНЕЙМ">
+        <button class="btn" style="font-size:24px;" onclick="connect()">ВОЙТИ</button>
+        <p id="status" style="font-size:14px; margin-top:10px;"></p>
     </div>
 </div>
 
 <div class="app-container">
     <div class="sidebar">
-        <div class="pc-header">PESTERCHUM 6.0</div>
-        <div class="avatar-area">
-            <img src="https://www.homestuck.com/images/pesterchum/moods/pester.png" height="60">
-            <span style="color:white; margin-left:10px; font-size:20px;">CHAT CLIENT</span>
-        </div>
-        
-        <div class="chumroll-label">CHUMROLL:</div>
-        <div class="chumroll" id="chumroll">
-            <div>adiosToreador</div>
-            <div>ectoBiologist</div>
-        </div>
-
-        <div class="action-btns">
-            <button class="btn-small">ADD CHUM</button>
-            <button class="btn-small btn-red">BLOCK</button>
-            <button class="btn-small">PESTER!</button>
-        </div>
-
-        <div class="chumroll-label" style="margin-top:10px;">MYCHUMHANDLE:</div>
-        <div id="myHandle" style="background:black; color:white; padding:5px; border:2px inset white;">offline</div>
+        <div class="pc-title">PESTERCHUM</div>
+        <div style="background:black; color:white; padding:5px;">CHUMROLL:</div>
+        <div class="chumroll" id="chumroll"></div>
+        <div id="myHandle" style="background:black; color:white; padding:5px; border:2px inset white; margin-top:10px; text-align:center;">OFFLINE</div>
     </div>
-
     <div class="chat-area">
-        <div class="window-frame">
-            <div class="window-header" id="chatTitle">:: gardenGnostic ::</div>
+        <div class="window">
+            <div class="win-header">:: pesterlog ::</div>
             <div class="pesterlog" id="log"></div>
-            <div class="input-box">
-                <input type="text" id="msgInput" placeholder="">
-            </div>
+            <div class="input-wrap"><input type="text" id="msgInput"></div>
+            <button class="btn" onclick="send()" style="margin: 0 10px 10px 10px;">PESTER!</button>
         </div>
     </div>
 </div>
 
-<audio id="pesterSound" src="https://www.soundboard.com/handler/Downloadaudio.ashx?id=302325"></audio>
-
 <script>
+    // ТУТ ВСТАВЬ ССЫЛКУ ИЗ RENDER
     const SERVER_URL = "https://pesterlog.onrender.com";
     let socket;
-    let myData = { handle: "", abbr: "" };
+    let myH = "";
 
     function connect() {
         const h = document.getElementById('handleInput').value.trim();
+        const stat = document.getElementById('status');
         if(!h) return;
-
-        myData.handle = h;
-        myData.abbr = h.substring(0,2).toUpperCase();
+        myH = h;
+        stat.innerText = "Связь с Render (жди 30 сек)...";
 
         socket = io(SERVER_URL, { transports: ['websocket', 'polling'] });
 
         socket.on('connect', () => {
             document.getElementById('login-overlay').classList.add('hidden');
-            document.getElementById('myHandle').innerText = h;
-            document.getElementById('pesterSound').play();
-            socket.emit('join', myData);
+            document.getElementById('myHandle').innerText = myH;
+            socket.emit('join', { handle: myH, abbr: h.substring(0,2).toUpperCase() });
+        });
+
+        socket.on('connect_error', () => {
+            stat.innerText = "Сервер спит... Пробую еще раз...";
         });
 
         socket.on('new_msg', (data) => {
@@ -133,29 +94,22 @@
             div.innerHTML = `<span style="color:black">${data.abbr}: ${data.message}</span>`;
             document.getElementById('log').appendChild(div);
             document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
-            if(data.handle !== myData.handle) document.getElementById('pesterSound').play();
         });
 
-        socket.on('system_msg', (txt) => {
+        socket.on('system_msg', (t) => {
             const div = document.createElement('div');
-            div.style.color = "gray";
-            div.style.textAlign = "center";
-            div.innerText = txt;
+            div.style.color = "gray"; div.style.textAlign = "center"; div.innerText = t;
             document.getElementById('log').appendChild(div);
         });
     }
 
-    document.getElementById('msgInput').addEventListener('keypress', (e) => {
-        if(e.key === 'Enter' && socket) {
-            socket.emit('send_msg', {
-                handle: myData.handle,
-                abbr: myData.abbr,
-                message: document.getElementById('msgInput').value
-            });
-            document.getElementById('msgInput').value = "";
+    function send() {
+        const i = document.getElementById('msgInput');
+        if(i.value && socket) {
+            socket.emit('send_msg', { handle: myH, abbr: myH.substring(0,2).toUpperCase(), message: i.value });
+            i.value = "";
         }
-    });
+    }
 </script>
-
 </body>
 </html>
